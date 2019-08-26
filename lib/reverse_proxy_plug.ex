@@ -35,13 +35,20 @@ defmodule ReverseProxyPlug do
   def request(conn, body, opts) do
     {method, url, headers, client_options} = prepare_request(conn, opts)
 
-    opts[:client].request(%HTTPoison.Request{
+    req = %HTTPoison.Request{
       method: method,
       url: url,
       body: body,
       headers: headers,
       options: client_options
-    })
+    }
+
+    if opts[:before] do
+      {module, fun} = opts[:before]
+      Task.start(module, fun, [req])
+    end
+
+    opts[:client].request(req)
   end
 
   def response({:ok, resp}, conn, opts) do
